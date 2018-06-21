@@ -7,6 +7,8 @@
 #define start_pin 4
 #define fan_pin 6
 #define transistor_pin 10
+#define transistor_pin2 5
+#define input_size 5    //number of samples
 
 float R1=100000.0;     //other resistance in series
 int analog_val[input_size];
@@ -16,11 +18,11 @@ int t = 20;      //gap between the readings for averaging (in ms)
 float R;    //resistance of thermistor 
 float T;    //temp of heating block
 long delay_motor = 50*32;
-int start_state = 1;    //state of motor 1:ON  2:OFF 
+int start_state = 1;    //state of motor 0:OFF  1:ON   
+int fan_state = 0;    //state of fan 0:OFF  1:ON  
 unsigned long previousMillis = 0;
 float B = 3950;     //B value
 float T0 = 298.15;    //room temp
-int input_size = 5;    //number of samples
 
 void setup() 
 {
@@ -29,20 +31,21 @@ void setup()
   pinMode(stp, OUTPUT);
   pinMode(dir, OUTPUT); 
   pinMode(start_pin, INPUT);     // connected to ABB
-  pinMode(fna_pin, INPUT);     //connected to ABB
+  pinMode(fan_pin, INPUT);     //connected to ABB
 
 }
 
 void loop() 
 {
 fan_state = digitalRead(fan_pin);   //fan start/stop
-if (fan_pin==1)
+  
+if (fan_state==1)
 {
-  analogWrite(fan_pin, 255);
+  analogWrite(transistor_pin2, 255);
 }
 else
 {
-  analogWrite(fan_pin, 0);
+  analogWrite(transistor_pin2, 0);
 }
 
 
