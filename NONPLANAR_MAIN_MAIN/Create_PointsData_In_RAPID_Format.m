@@ -9,6 +9,9 @@ function [] = Create_PointsData_In_RAPID_Format(pathptsnew)
 
 tcp_travel = fopen('output_to_RAPID.txt','wt');
 
+fprintf(tcp_travel,'MoveL RelTool (p1,0,0,70,%sx:=0,%sy:=0),vel1,zoneval,tool_new%sObj:=Workobject_1;\n\n','\R','\R','\W');
+
+fprintf(tcp_travel,'MoveL RelTool (p1,%f,%f,%f,%sx:=0,%sy:=0),vel1,zoneval,tool_new%sObj:=Workobject_1;\n\n',pathptsnew(1,1),pathptsnew(1,2),pathptsnew(1,3)+50,'\R','\R','\W');
 
 
 for i=1:size(pathptsnew,1)
@@ -22,6 +25,9 @@ for i=1:size(pathptsnew,1)
     % rz = 0;
     fprintf(tcp_travel,'MoveL RelTool (p1,%f,%f,%f,%sx:=%f,%sy:=%f),vel1,zoneval,tool_new%sObj:=Workobject_1;\n',px,py,pz,'\R',rx,'\R',ry,'\W');
 end
+fprintf(tcp_travel,'MoveL RelTool (p1,%f,%f,%f,%sx:=%f,%sy:=%f),vel1,zoneval,tool_new%sObj:=Workobject_1;\n\n',pathptsnew(i,1),pathptsnew(i,2),pathptsnew(i,3)+50,'\R',pathptsnew(i,4),'\R',pathptsnew(i,5),'\W');
+
+fprintf(tcp_travel,'MoveL RelTool (p1,0,0,70,%sx:=0,%sy:=0),vel1,zoneval,tool_new%sObj:=Workobject_1;\n\n','\R','\R','\W');
 
 fclose(tcp_travel);
 
