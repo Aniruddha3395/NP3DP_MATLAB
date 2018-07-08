@@ -173,7 +173,7 @@ def main():
     q = tf.quaternion_from_matrix(CR_T_HR)       
     print (q)
     abc = tf.euler_from_quaternion(q, axes='sxyz')
-    print (abc[0]*180/math.pi, abc[1]*180/math.pi, abc[2]*180/math.pi)
+    # print (abc[0]*180/math.pi, abc[1]*180/math.pi, abc[2]*180/math.pi)
 
 if __name__ == "__main__":
     main()    
