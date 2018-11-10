@@ -1,3 +1,15 @@
+MODULE MainModule
+PERS wobjdata Workobject_1:=[FALSE,TRUE,"",[[227.298573,64.588729,285.488071],[0.675754,-0.131336,-0.131896,-0.713240]],[[0,0,0],[1,0,0,0]]];
+PERS tooldata tool_new:=[TRUE,[[-25.2038,-6.63467,85.9117],[0,-0.707106781,0.707106781,0]],[0.5,[-3,-15,42],[1,0,0,0],0,0,0]];
+CONST robtarget p1 := [ [0,0,0], [1, 0, 0, 0], [0,0,0,0], [9E9,9E9, 9E9, 9E9, 9E9, 9E9] ];
+VAR speeddata vel1 := [25,25,10,10];
+VAR zonedata zoneval:=[FALSE,10,30,30,10,10,10];
+
+
+PROC main()
+AccSet 10,10;
+SingArea\Wrist;
+ConfL\On;
 MoveL RelTool (p1,0,0,70,\Rx:=0,\Ry:=0),vel1,zoneval,tool_new\WObj:=Workobject_1;
 
 MoveL RelTool (p1,3.000000,16.000000,54.920000,\Rx:=0,\Ry:=0),vel1,zoneval,tool_new\WObj:=Workobject_1;
@@ -2326,3 +2338,5 @@ MoveL RelTool (p1,82.500000,16.000000,54.920000,\Rx:=0.000000,\Ry:=-0.000000),ve
 
 MoveL RelTool (p1,0,0,70,\Rx:=0,\Ry:=0),vel1,zoneval,tool_new\WObj:=Workobject_1;
 
+	ENDPROC
+ENDMODULE

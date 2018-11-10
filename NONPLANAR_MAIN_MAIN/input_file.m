@@ -27,12 +27,12 @@ space = 2;          %number of points to skip for smoother path
 %%% Make Complete Rapid File or Points file for Rapid
 % 1 - Complete File
 % 2 - Points File
-FileType = 2;
+FileType = 1;
 
 %%% Generate Transformation for Robot Work Co-ordinates Setup
 % 1 - Yes
 % 2 - No
-Generate_Transform = 2;     % check 'Transformation_Setup.m' function
+Generate_Transform = 1;     % check 'Transformation_Setup.m' function
 
 
 %% Robot Work-Object Frame Setup
