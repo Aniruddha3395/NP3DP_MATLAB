@@ -2,141 +2,100 @@ clc;
 clear;
 close all;
 warning off;
+set(0, 'DefaultFigureRenderer', 'opengl');
+
 tic;        %start time
+
 %% INPUTS
+% -----------------------------------------------------------------------%
+% write data to file
+write_data = false;
+calculate_number_of_layers = true;
 
-%%% STL file name -
-STL_File = 'L1.stl';
+% STL file name -
+STL_File = 'test_part4.STL';
 
-%%% Gap between 2 hatching lines -
-pathgap = 0.5;
+% Gap between 2 hatching lines -
+pathgap_x = 2;                %mm
+pathgap_y = 2;                %mm
+start_hatch_angle = 0;       %degrees
+hatch_angle_change = 45;      %consecutive layers will have this much change in hatching angle (degrees)
+grid_addition = 70;           %higher number for higher aspect ratio of part in xy plane
 
-%%% Gap between 2 layers -
-pathgapz = 1;
+% Gap between 2 layers -
+pathgapz = 0.5;           %mm
 
-%%% Path to generate -
+% Path to generate -
 % 1 - Boundary
-% 2 - Along X-direction, i.e. 0 degree hatching
-% 3 - Along Y-direction, i.e. 90 degree hatching
-% 4 - Along the line Y=X, i.e. 45 degree hatching
-% 5 - Along the line Y=-X, i.e. 135 degree hatching
-Path_Number = 3;    %put number from above
+% 2 - Hatching
+Path_Number = 2;    %put number from above
 FlipTravel = 0;     %1 for yes, 0 for No
 space = 2;          %number of points to skip for smoother path
-
-%%% Make Complete Rapid File or Points file for Rapid
-% 1 - Complete File
-% 2 - Points File
-FileType = 1;
-
-%%% Generate Transformation for Robot Work Co-ordinates Setup
-% 1 - Yes
-% 2 - No
-Generate_Transform = 1;     % check 'Transformation_Setup.m' function
-
-
-%% Robot Work-Object Frame Setup
-if Generate_Transform == 1
-    % Add points
-    WorkObject_Points = [0, 0, 0;
-        203.2, 0, 0;
-        203.2, 203.2, 0;
-        0, 203.2, 0;
-        203.2, 0, -4;
-        0, 0, -4;
-        0, 203.2, -4;
-        203.2, 203.2, -4];
-    % Add points
-    RobotBase_Points = [228.41, 62.57, 285.33;
-        217.55, -125.14, 357.75;
-        419.30, -135.32, 361.07;
-        429.84, 52.60, 288.29;
-        219.22, -119.90, 357.06;
-        229.33, 60.44, 282.77;
-        426.30, 50.44, 285.63;
-        417.51, -132.37, 356.93];
-else
-    WorkObject_Points = [];
-    RobotBase_Points = [];
-end
-
+% -----------------------------------------------------------------------%
 
 %% bottom layer generation
-
 % using the stlread function from Mathworks File Exchange to get the
 % vertices v, faces f and normals n from stl file
 [v, f, n, stltitle] = stlRead(STL_File);
 % reference: https://www.mathworks.com/matlabcentral/fileexchange/51200-stltools
 
-%%%%%%%%% put this only when body is shifted...
-v(:,1) = v(:,1);
-v(:,2) = v(:,2);
-
-
 %% xmax and ymax to get the grid size
+xmax = max(v(:,1))+grid_addition;
+ymax = max(v(:,2))+grid_addition;
+xmin = min(v(:,1))-grid_addition;
+ymin = min(v(:,2))-grid_addition;
 
-xmax = max(v(:,1));
-ymax = max(v(:,2));
-
+%% finding thickness of shell part and number of layers required for printing
+if calculate_number_of_layers==true
+    num_of_layers = number_of_layers(v,f,n,pathgapz);
+else
+    num_of_layers = input('specify number of layers = \n');
+end
 
 %% identifying the co-ordinates of bottom layer first
-
 fnew = Identify_Bottom_Layer(v,f,n);
 
-%%%%%%%%%%%%% grid pts in triangle %%%%%%%%%%%
-
-pts = Generate_Grid_Points(pathgap,xmax,ymax);
-
-[fillpts] = Project_Grid_Points(fnew,v,pts);
-
-
-%% use input to make specific infill or boundary ...also delete this
-
-switch Path_Number
-    case 1
-        bdry = Boundary_Path(fillpts);
-        %for making RAPID code for ABB
-        if FileType==1
-            Create_RAPID_File(bdry,Generate_Transform,WorkObject_Points,RobotBase_Points);
-        elseif FileType==2
-            Create_PointsData_In_RAPID_Format(bdry);
-        end
-        fprintf('Output file "output_to_RAPID.txt" is created for Boundary Path!\n');
-    case 2
-        infill = Infill_Path_0_Degree(fillpts,FlipTravel,space);
-        %for making RAPID code for ABB
-        if FileType==1
-            Create_RAPID_File(infill,Generate_Transform,WorkObject_Points,RobotBase_Points);
-        elseif FileType==2
-            Create_PointsData_In_RAPID_Format(infill);
-        end
-        fprintf('Output file "output_to_RAPID.txt" is created for 0 degree path!\n');
-    case 3
-        infill = Infill_Path_90_Degree(fillpts,FlipTravel,space);
-        %for making RAPID code for ABB
-        if FileType==1
-            Create_RAPID_File(infill,Generate_Transform,WorkObject_Points,RobotBase_Points);
-        elseif FileType==2
-            Create_PointsData_In_RAPID_Format(infill);
-        end
-        fprintf('Output file "output_to_RAPID.txt" is created for 90 degree path!\n');
-    case 4
-        infill = Infill_Path_45_Degree(fillpts,pathgap,FlipTravel,space);
-        %for making RAPID code for ABB
-        if FileType==1
-            Create_RAPID_File(infill,Generate_Transform,WorkObject_Points,RobotBase_Points);
-        elseif FileType==2
-            Create_PointsData_In_RAPID_Format(infill);
-        end
-        fprintf('Output file "output_to_RAPID.txt" is created for 45 degree path!\n');
-    case 5
-        infill = Infill_Path_135_Degree(fillpts,pathgap,FlipTravel,space);
-        %for making RAPID code for ABB
-        if FileType==1
-            Create_RAPID_File(infill,Generate_Transform,WorkObject_Points,RobotBase_Points);
-        elseif FileType==2
-            Create_PointsData_In_RAPID_Format(infill);
-        end
-        fprintf('Output file "output_to_RAPID.txt" is created for 135 degree path!\n');
+%% generating the tool path
+all_traj_pts = {};
+for layer = 1:num_of_layers
+    
+    hatch_angle = start_hatch_angle + (layer-1)*hatch_angle_change;
+    
+    % generate planar grid points
+    pts = Generate_Grid_Points(pathgap_x,pathgap_y,xmin,ymin,xmax,ymax,hatch_angle);
+    
+    % project grid points on the non planar surface
+    [fillpts] = Project_Grid_Points(fnew,v,pts,hatch_angle);
+    
+    switch Path_Number
+        case 1
+            tool_path = Boundary_Path(fillpts,hatch_angle);
+        case 2
+            tool_path = Infill_Path(fillpts,FlipTravel,space,hatch_angle);
+    end
+    tool_path(:,3) = tool_path(:,3) + (layer-1)*pathgapz;
+    hold on;
+    plot3(tool_path(:,1),tool_path(:,2),tool_path(:,3))
+    xlabel('x');
+    ylabel('y');
+    zlabel('z');
+    daspect([1 1 1]);
+    
+    % append data
+    start_pt = tool_path(1,:);
+    start_pt(1,3) = start_pt(1,3)+50;
+    end_pt = tool_path(end,:);
+    end_pt(1,3) = end_pt(1,3)+50;
+    all_traj_pts{layer,1} = [start_pt;tool_path;end_pt];
 end
+
+%% write data to file
+if write_data
+    % Create_RAPID_File(cell2mat(all_traj_pts));
+    dlmwrite('complete_tool_path.csv',cell2mat(all_traj_pts));
+    fprintf('Output file is created!\n');
+end
+
 toc;        %end time
+
+

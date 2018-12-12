@@ -39,11 +39,11 @@ basepts = [storenew(:,1),storenew(:,2),storenew(:,3)];
 basepts = unique(basepts,'rows');          % removing the repeating co-ordinates
 
 % plot showing scatter points data for bottom layer
-figure('Name','Bottom Surface Scatterplot')
-scatter3(basepts(:,1),basepts(:,2),basepts(:,3),'.')
-xlabel('x-axis');
-ylabel('y-axis');
-zlabel('z-axis');
+% figure('Name','Bottom Surface Scatterplot')
+% scatter3(basepts(:,1),basepts(:,2),basepts(:,3),'.')
+% xlabel('x-axis');
+% ylabel('y-axis');
+% zlabel('z-axis');
 
 
 end

@@ -1,4 +1,5 @@
-function [fillpts] = Project_Grid_Points(fnew,v,pts)
+function [fillpts] = Project_Grid_Points(fnew,v,pts,hatch_angle)
+global x_avg y_avg;
 
 % this function projects the uniform grid on the curved surface and also
 % preserves the normal associated with each vertex. These normals are useful
@@ -48,10 +49,15 @@ fillpts = [fillpts;store];
 
 end
 
-figure('Name','Surface with normals');
-scatter3(fillpts(:,1),fillpts(:,2),fillpts(:,3),'.');
-hold on;
-quiver3(fillpts(:,1),fillpts(:,2),fillpts(:,3),-fillpts(:,4),-fillpts(:,5),-fillpts(:,6))
+% figure('Name','Surface with normals');
+% scatter3(fillpts(:,1),fillpts(:,2),fillpts(:,3),'.');
+% hold on;
+% quiver3(fillpts(:,1),fillpts(:,2),fillpts(:,3),-fillpts(:,4),-fillpts(:,5),-fillpts(:,6))
 fillpts = [fillpts(:,1),fillpts(:,2),fillpts(:,3),-fillpts(:,4),-fillpts(:,5),-fillpts(:,6)];
+
+
+% giving negative of hatching angle to make points aligned along reference axes
+fillpts_new = rotate_pts(fillpts(:,1:2),-hatch_angle,x_avg,y_avg);
+fillpts(:,1:2) = fillpts_new;
 
 end
