@@ -16,8 +16,8 @@ for i = 1:size(i_val,1)
 end
 
 % apply rotation to points
-x_avg = sum(pts(:,1))/size(pts,1)
-y_avg = sum(pts(:,2))/size(pts,1)
+x_avg = sum(pts(:,1))/size(pts,1);
+y_avg = sum(pts(:,2))/size(pts,1);
 pts = rotate_pts(pts,hatch_angle,x_avg,y_avg);
 
 end

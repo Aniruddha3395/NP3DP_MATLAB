@@ -1,20 +1,20 @@
 function [storesort0x1tp] = Infill_Path(fillpts,FlipTravel,space,hatch_angle)
 global x_avg y_avg;
 
-% function for creating path from projected points for tcp travel 
+% function for creating path from projected points for tcp travel
 % along x direction
 % INPUT: projected points on the surface (equally spaced along x and y axes)
 % OUTPUT: points arranged along 0 degree path with their Rx and Ry value
 
 dir1 = 2;
-dir2 = 1; 
+dir2 = 1;
 allpts = [fillpts];
 allpts = sortrows(allpts,dir1);
-flip = 0; 
+flip = 0;
 storeset = [];
 
 storesort = [];
-% making sets of points with same y value 
+% making sets of points with same y value
 for i = 1:size(allpts,1)-1
     if abs(allpts(i,dir1)-allpts(i+1,dir1))<0.00001
         storeset = [storeset;allpts(i,:)];
@@ -32,15 +32,13 @@ end
 storeset = [storeset;allpts(size(allpts,1),:)];
 storeset = sortrows(storeset,dir2);
 % this is to get the direction of last line travel
-if storesort(size(storesort,1),dir2)==storeset(1,dir2)
+if (flip/2) == round(flip/2)        %means even
+    storeset = flipud(storeset);
+end
 storesort = [storesort;storeset];
-else
-storeset = flipud(storeset);
-storesort = [storesort;storeset];
-end        
 storesort0x1 = storesort;
 % plotting hatch
-% figure('Name','Hatching along x-axis');  
+% figure('Name','Hatching along x-axis');
 % scatter3(storesort0x1(:,1),storesort0x1(:,2),storesort0x1(:,3))
 % xlabel('x');
 % ylabel('y');
@@ -54,7 +52,7 @@ Rx = -atan(storesort0x1(:,5)./storesort0x1(:,6))*180/pi;% Rx value for tcp
 Ry = atan(storesort0x1(:,4)./storesort0x1(:,6))*180/pi;% Ry value for tcp
 storesort0x1 = [storesort0x1(:,1:3),Rx,Ry];
 
-%% storing every n'th point to smoothen out the path 
+%% storing every n'th point to smoothen out the path
 count = 0;
 store_spaced_pt = [storesort0x1(1,:)];
 flagg = 0;
@@ -81,7 +79,7 @@ store_spaced_pt = [store_spaced_pt;storesort0x1(i+1,:)];
 storesort0x1tp = store_spaced_pt;
 
 
-%% flip the direction of travel 
+%% flip the direction of travel
 if FlipTravel==1
     storesort0x1tp = flipud(storesort0x1tp);
 end
