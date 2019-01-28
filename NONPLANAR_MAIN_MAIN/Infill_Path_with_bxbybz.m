@@ -49,7 +49,7 @@ storesort0x1 = storesort;
 % ylabel('y');
 % zlabel('z');
 
-[bx,by,bz] = compute_TCP_new(storesort0x1(:,1:3),storesort0x1(:,4:6));
+[bx,by,bz] = compute_TCP_new(storesort0x1(:,1:3),-storesort0x1(:,4:6));
 storesort0x1 = [storesort0x1(:,1:3),bx,by,bz];
 
 %% storing every n'th point to smoothen out the path

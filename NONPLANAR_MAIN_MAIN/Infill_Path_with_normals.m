@@ -37,6 +37,7 @@ if (flip/2) == round(flip/2)        %means even
 end
 storesort = [storesort;storeset];
 storesort0x1 = storesort;
+storesort0x1(:,4:6) = storesort0x1(:,4:6).*-1; 
 % plotting hatch
 % figure('Name','Hatching along x-axis');
 % scatter3(storesort0x1(:,1),storesort0x1(:,2),storesort0x1(:,3))

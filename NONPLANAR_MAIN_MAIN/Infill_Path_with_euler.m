@@ -49,7 +49,7 @@ storesort0x1 = storesort;
 % ylabel('y');
 % zlabel('z');
 
-[bx,by,bz] = compute_TCP_new(storesort0x1(:,1:3),storesort0x1(:,4:6));
+[bx,by,bz] = compute_TCP_new(storesort0x1(:,1:3),-storesort0x1(:,4:6));
 [abc] = bxbybz_to_euler(bx,by,bz);
 storesort0x1 = [storesort0x1(:,1:3),abc];
 
