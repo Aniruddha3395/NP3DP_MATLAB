@@ -39,7 +39,7 @@ void mexFunction (int _OutArgs, mxArray *MatlabOut[], int _InArgs, const mxArray
     
     // Method 
     Eigen::MatrixXd tool_path = Infill_Path(fillpts, FlipTravel, space, hatch_angle, x_avg, y_avg);
-    
+
     // Define Output
     MatlabOut[0] = mxCreateDoubleMatrix(tool_path.rows(), tool_path.cols(), mxREAL);
     Eigen::Map<Eigen::ArrayXXd,Eigen::Aligned> M0 ( mxGetPr(MatlabOut[0]), tool_path.rows(), tool_path.cols() );
@@ -66,14 +66,14 @@ Eigen::MatrixXd Infill_Path(Eigen::MatrixXd fillpts, double FlipTravel, double s
     long int storeset_idx = 0;
     for (long int i=0;i<allpts.rows()-1;++i)
     {
-        if (std::abs(allpts(i,dir1)-allpts(i+1,dir1))<0.00001)
+        if (std::fabs(allpts(i,dir1)-allpts(i+1,dir1))<0.0001)
         {
-            storeset.block(storeset_idx,0,1,allpts.cols()) = allpts.block(i,0,1,allpts.cols());
+            storeset.row(storeset_idx) = allpts.row(i);
             ++storeset_idx;
         }   
         else
         {
-            storeset.block(storeset_idx,0,1,allpts.cols()) = allpts.block(i,0,1,allpts.cols());
+            storeset.row(storeset_idx) = allpts.row(i);
             Eigen::MatrixXd storeset_nz(storeset_idx+1,storeset.cols());
             storeset_nz = storeset.block(0,0,storeset_idx+1,storeset.cols());
             std::vector<std::vector<double> > storeset_nz_vec;
@@ -92,7 +92,7 @@ Eigen::MatrixXd Infill_Path(Eigen::MatrixXd fillpts, double FlipTravel, double s
             storeset_idx = 0;
         }       
     }
-    storeset.block(storeset_idx,0,1,allpts.cols()) = allpts.block(allpts.rows()-1,0,1,allpts.cols());
+    storeset.row(storeset_idx) = allpts.row(allpts.rows()-1);
     Eigen::MatrixXd storeset_nz(storeset_idx+1,storeset.cols());
     storeset_nz = storeset.block(0,0,storeset_idx+1,storeset.cols());
     std::vector<std::vector<double> > storeset_nz_vec;
@@ -118,9 +118,9 @@ Eigen::MatrixXd Infill_Path(Eigen::MatrixXd fillpts, double FlipTravel, double s
 
     // storing every n'th point to smoothen out the path 
     int count = 0;
-    Eigen::MatrixXd store_spaced_pt(storesort0x1.rows(),storesort0x1.cols()); 
-    store_spaced_pt.block(0,0,1,storesort0x1.cols()) = storesort0x1.block(0,0,1,storesort0x1.cols());
-    long int store_spaced_pt_idx = 1;
+    Eigen::MatrixXd store_spaced_pt = Eigen::MatrixXd::Constant(storesort0x1.rows(),storesort0x1.cols(),0); 
+    store_spaced_pt.row(0) = storesort0x1.row(0);
+    long int store_spaced_pt_idx = 0;
     int flagg = 0;
     for (long int i=1;i<storesort0x1.rows()-1;++i)
     {
@@ -134,23 +134,23 @@ Eigen::MatrixXd Infill_Path(Eigen::MatrixXd fillpts, double FlipTravel, double s
             ++count;
             if (double(count)/space == round(count/space))
             {
-                store_spaced_pt.block(store_spaced_pt_idx,0,1,storesort0x1.cols()) = storesort0x1.block(i,0,1,storesort0x1.cols());
                 ++store_spaced_pt_idx;
+                store_spaced_pt.row(store_spaced_pt_idx) = storesort0x1.row(i);
                 count = 0;
             }
         }
         else
         {
-            store_spaced_pt.block(store_spaced_pt_idx,0,1,storesort0x1.cols()) = storesort0x1.block(i,0,1,storesort0x1.cols());
             ++store_spaced_pt_idx;
-            store_spaced_pt.block(store_spaced_pt_idx,0,1,storesort0x1.cols()) = storesort0x1.block(i+1,0,1,storesort0x1.cols());
+            store_spaced_pt.row(store_spaced_pt_idx) = storesort0x1.row(i);
             ++store_spaced_pt_idx;
+            store_spaced_pt.row(store_spaced_pt_idx) = storesort0x1.row(i+1);
             flagg = 1;  
         }
     }
 
     // adding the last point
-    store_spaced_pt.block(store_spaced_pt_idx,0,1,storesort0x1.cols()) = storesort0x1.block(storesort0x1.rows()-1,0,1,storesort0x1.cols());
+    store_spaced_pt.row(store_spaced_pt_idx) = storesort0x1.row(storesort0x1.rows()-1);
     Eigen::MatrixXd storesort0x1tp = store_spaced_pt.block(0,0,store_spaced_pt_idx+1,store_spaced_pt.cols());
 
     // flip the direction of travel

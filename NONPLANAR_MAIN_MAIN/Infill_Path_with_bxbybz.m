@@ -1,5 +1,4 @@
-function [storesort0x1tp] = Infill_Path_with_bxbybz(fillpts,FlipTravel,space,hatch_angle)
-global x_avg y_avg;
+function [storesort0x1tp] = Infill_Path_with_bxbybz(fillpts,FlipTravel,space,hatch_angle,x_avg,y_avg)
 
 % function for creating path from projected points for tcp travel
 % along x direction

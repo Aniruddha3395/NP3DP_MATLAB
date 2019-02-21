@@ -11,20 +11,20 @@ tic;        %start time
 % write data to file
 write_data = false;
 calculate_number_of_layers = true;
-enable_MEX = false;
+enable_MEX = true;
 
 % STL file name -
-STL_File = 'data_files/test_part1.STL';
+STL_File = 'data_files/test_part3.STL';
 
 % Gap between 2 hatching lines -
-pathgap_x = 2;                %mm
-pathgap_y = 2;                %mm
+pathgap_x = 1;                %mm
+pathgap_y = 1;                %mm
 start_hatch_angle = 90;       %degrees
-hatch_angle_change = 45;      %consecutive layers will have this much change in hatching angle (degrees)
-grid_addition = 70;           %higher number for higher aspect ratio of part in xy plane
+hatch_angle_change = 40;      %consecutive layers will have this much change in hatching angle (degrees)
+grid_addition = 100;           %higher number for higher aspect ratio of part in xy plane
 
 % Gap between 2 layers -
-pathgapz = 2;           %mm
+pathgapz = 0.25;           %mm
 
 % Path to generate -
 % 1 - Boundary
@@ -56,7 +56,7 @@ if calculate_number_of_layers==true
 else
     num_of_layers = input('specify number of layers = \n');
 end
-
+% num_of_layers = 2;
 %% identifying the co-ordinates of bottom layer first
 if enable_MEX
     fnew = Identify_Bottom_Layer_mex(v,f,n);
@@ -85,7 +85,6 @@ for layer = 1:num_of_layers
     end
     % project grid points on the non planar surface
     [fillpts] = Project_Grid_Points(fnew,v,pts,hatch_angle,x_avg,y_avg);
-    
     switch Path_Number
         case 1
             tool_path = Boundary_Path(fillpts,hatch_angle,x_avg,y_avg);
@@ -94,9 +93,8 @@ for layer = 1:num_of_layers
                 tool_path = Infill_Path_mex(fillpts,FlipTravel,space,hatch_angle,x_avg,y_avg);
             else
                 tool_path = Infill_Path(fillpts,FlipTravel,space,hatch_angle,x_avg,y_avg);
-            end
-            
-    end
+            end   
+    end    
     tool_path(:,3) = tool_path(:,3) + (layer-1)*pathgapz;
     hold on;
     plot3(tool_path(:,1),tool_path(:,2),tool_path(:,3))
@@ -106,11 +104,11 @@ for layer = 1:num_of_layers
     daspect([1 1 1]);
     
     % append data
-    start_pt = tool_path(1,:);
-    start_pt(1,3) = start_pt(1,3)+50;
-    end_pt = tool_path(end,:);
-    end_pt(1,3) = end_pt(1,3)+50;
-    all_traj_pts{layer,1} = [start_pt;tool_path;end_pt];
+%     start_pt = tool_path(1,:);
+%     start_pt(1,3) = start_pt(1,3)+50;
+%     end_pt = tool_path(end,:);
+%     end_pt(1,3) = end_pt(1,3)+50;
+%     all_traj_pts{layer,1} = [start_pt;tool_path;end_pt];
 end
 
 %% write data to file
