@@ -11,10 +11,10 @@ tic;        %start time
 % write data to file
 write_data = false;
 calculate_number_of_layers = true;
-enable_MEX = true;
+enable_MEX = false;
 
 % STL file name -
-STL_File = 'data_files/test_part3.STL';
+STL_File = 'data_files/test_part1.STL';
 
 % Gap between 2 hatching lines -
 pathgap_x = 1;                %mm
@@ -84,7 +84,11 @@ for layer = 1:num_of_layers
         pts = rotate_pts(pts,hatch_angle,x_avg,y_avg);
     end
     % project grid points on the non planar surface
-    [fillpts] = Project_Grid_Points(fnew,v,pts,hatch_angle,x_avg,y_avg);
+    if enable_MEX
+        [fillpts] = Project_Grid_Points_mex(fnew,v,pts,hatch_angle,x_avg,y_avg);
+    else
+        [fillpts] = Project_Grid_Points(fnew,v,pts,hatch_angle,x_avg,y_avg);
+    end
     switch Path_Number
         case 1
             tool_path = Boundary_Path(fillpts,hatch_angle,x_avg,y_avg);
