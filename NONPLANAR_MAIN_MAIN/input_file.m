@@ -3,28 +3,28 @@ clear;
 close all;
 warning off;
 set(0, 'DefaultFigureRenderer', 'opengl');
-
 tic;        %start time
 
 %% INPUTS
 % -----------------------------------------------------------------------%
 % write data to file
 write_data = false;
-calculate_number_of_layers = true;
-enable_MEX = false;
+calculate_number_of_layers = false;
+enable_MEX = true;
 
 % STL file name -
-STL_File = 'data_files/test_part1.STL';
+STL_File = 'data_files/test_part4.STL';
+
 
 % Gap between 2 hatching lines -
 pathgap_x = 1;                %mm
 pathgap_y = 1;                %mm
-start_hatch_angle = 90;       %degrees
-hatch_angle_change = 40;      %consecutive layers will have this much change in hatching angle (degrees)
+start_hatch_angle = 0;       %degrees
+hatch_angle_change = 0;      %consecutive layers will have this much change in hatching angle (degrees)
 grid_addition = 100;           %higher number for higher aspect ratio of part in xy plane
 
 % Gap between 2 layers -
-pathgapz = 0.25;           %mm
+pathgapz = 25;           %mm
 
 % Path to generate -
 % 1 - Boundary
@@ -56,10 +56,9 @@ if calculate_number_of_layers==true
 else
     num_of_layers = input('specify number of layers = \n');
 end
-% num_of_layers = 2;
 %% identifying the co-ordinates of bottom layer first
 if enable_MEX
-    fnew = Identify_Bottom_Layer_mex(v,f,n);
+    fnew = Identify_Top_Layer_mex(v,f,n);
 else
     fnew = Identify_Bottom_Layer(v,f,n);
 end
@@ -85,9 +84,9 @@ for layer = 1:num_of_layers
     end
     % project grid points on the non planar surface
     if enable_MEX
-        [fillpts] = Project_Grid_Points_mex(fnew,v,pts,hatch_angle,x_avg,y_avg);
+        fillpts = Project_Grid_Points_mex(fnew,v,pts,hatch_angle,x_avg,y_avg);
     else
-        [fillpts] = Project_Grid_Points(fnew,v,pts,hatch_angle,x_avg,y_avg);
+        fillpts = Project_Grid_Points(fnew,v,pts,hatch_angle,x_avg,y_avg);
     end
     switch Path_Number
         case 1
@@ -106,7 +105,7 @@ for layer = 1:num_of_layers
     ylabel('y');
     zlabel('z');
     daspect([1 1 1]);
-    
+%     view(0,0);
     % append data
 %     start_pt = tool_path(1,:);
 %     start_pt(1,3) = start_pt(1,3)+50;
