@@ -7,10 +7,10 @@
 #include <vector>
 #include <cmath>
 
-Eigen::MatrixXd project_grid_points(Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, double, double, double);
-Eigen::VectorXd InPoly(Eigen::MatrixXd q, Eigen::MatrixXd p);
+Eigen::MatrixXd project_grid_points(const Eigen::MatrixXd&, const Eigen::MatrixXd&, const Eigen::MatrixXd&, double, double, double);
+void InPoly(const Eigen::MatrixXd& q, const Eigen::MatrixXd& p, Eigen::VectorXd& );
 bool lines_intersect(double l1[2][2], double l2[2][2]);
-std::vector<int> find_idx(Eigen::VectorXd vec);
+std::vector<int> find_idx(const Eigen::VectorXd& vec);
 Eigen::MatrixXd rotate_pts(Eigen::MatrixXd, double, double, double);
 Eigen::MatrixXd apply_transformation(Eigen::MatrixXd, Eigen::Matrix4d);
 Eigen::Matrix4d hom_T(Eigen::Vector3d, Eigen::Matrix3d);
@@ -37,14 +37,14 @@ void mexFunction (int _OutArgs, mxArray *MatlabOut[], int _InArgs, const mxArray
     
     // Method 
     Eigen::MatrixXd fillpts = project_grid_points(fnew, v, pts, hatch_angle, x_avg, y_avg);
-    
+
     // Define Output
     MatlabOut[0] = mxCreateDoubleMatrix(fillpts.rows(), fillpts.cols(), mxREAL);
     Eigen::Map<Eigen::ArrayXXd,Eigen::Aligned> M0 ( mxGetPr(MatlabOut[0]), fillpts.rows(), fillpts.cols() );
     M0 = fillpts.array();  
 }
 
-Eigen::MatrixXd project_grid_points(Eigen::MatrixXd fnew, Eigen::MatrixXd v, Eigen::MatrixXd pts, double hatch_angle, double x_avg, double y_avg)
+Eigen::MatrixXd project_grid_points(const Eigen::MatrixXd& fnew, const Eigen::MatrixXd& v, const Eigen::MatrixXd& pts, double hatch_angle, double x_avg, double y_avg)
 {
     Eigen::MatrixXd p1(1,v.cols());
     Eigen::MatrixXd p2(1,v.cols());
@@ -67,7 +67,8 @@ Eigen::MatrixXd project_grid_points(Eigen::MatrixXd fnew, Eigen::MatrixXd v, Eig
 
         // projecting triagles on to the xy plane and 
         // storing all grid points which are inside triangle
-        Eigen::VectorXd in = InPoly(pts, tri);
+        Eigen::VectorXd in = Eigen::VectorXd::Constant(pts.rows(),1,0);
+        InPoly(pts, tri, in);
         std::vector<int> loc = find_idx(in);
         Eigen::MatrixXd store(loc.size(),pts.cols());
         Eigen::VectorXd storez(loc.size(),1);
@@ -117,12 +118,10 @@ Eigen::MatrixXd project_grid_points(Eigen::MatrixXd fnew, Eigen::MatrixXd v, Eig
     return fillpts_final; 
 }
 
-Eigen::VectorXd InPoly(Eigen::MatrixXd q, Eigen::MatrixXd p)
+void InPoly(const Eigen::MatrixXd& q, const Eigen::MatrixXd& p, Eigen::VectorXd& in)
 {
 	double l1[2][2];
 	double l2[2][2];
-
-	Eigen::VectorXd in = Eigen::VectorXd::Constant(q.rows(),1,0);
 
 	double xmin = p.col(0).minCoeff();
 	double xmax = p.col(0).maxCoeff();
@@ -190,7 +189,6 @@ Eigen::VectorXd InPoly(Eigen::MatrixXd q, Eigen::MatrixXd p)
 			in(i,0) = 1;
 		}
 	}
-	return in;
 }
 
 bool lines_intersect(double l1[2][2], double l2[2][2])
@@ -244,7 +242,7 @@ bool lines_intersect(double l1[2][2], double l2[2][2])
 	return false;
 }
 
-std::vector<int> find_idx(Eigen::VectorXd vec)
+std::vector<int> find_idx(const Eigen::VectorXd& vec)
 {
     std::vector<int> idx;
     for (int i=0;i<vec.rows();++i)

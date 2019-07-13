@@ -7,7 +7,10 @@
 #include <vector>
 #include <cmath>
 
-Eigen::MatrixXd Infill_Path_with_bxbybz(Eigen::MatrixXd, double, double, double, double, double);
+Eigen::MatrixXd Infill_Path_with_bxbybz(Eigen::MatrixXd, double, double, double, double, double, int);
+Eigen::MatrixXd align_pts(Eigen::MatrixXd);
+Eigen::MatrixXd smoothened_traj_by_pts_skip(Eigen::MatrixXd, double);
+Eigen::MatrixXd skip_toolpath_lines(Eigen::MatrixXd, int);
 Eigen::MatrixXd compute_TCP(Eigen::MatrixXd, Eigen::MatrixXd);
 std::vector<std::vector<double> > mat_to_vec(Eigen::MatrixXd);
 std::vector<std::vector<double> > SortRows(std::vector<std::vector<double> >, int);
@@ -27,19 +30,22 @@ void mexFunction (int _OutArgs, mxArray *MatlabOut[], int _InArgs, const mxArray
     double *ptr_hatch_angle;
     double *ptr_x_avg;
     double *ptr_y_avg;
+    double *ptr_skip_lines;
     ptr_FlipTravel = mxGetDoubles(MatlabIn[1]);
     ptr_space = mxGetDoubles(MatlabIn[2]);
     ptr_hatch_angle = mxGetDoubles(MatlabIn[3]);
     ptr_x_avg = mxGetDoubles(MatlabIn[4]);
     ptr_y_avg = mxGetDoubles(MatlabIn[5]);
+    ptr_skip_lines = mxGetDoubles(MatlabIn[6]);
     double FlipTravel = *ptr_FlipTravel;
     double space = *ptr_space;
     double hatch_angle = (*ptr_hatch_angle)*3.14159/180;
     double x_avg = *ptr_x_avg;
     double y_avg = *ptr_y_avg;
+    double skip_lines = *ptr_skip_lines;
     
     // Method 
-    Eigen::MatrixXd tool_path = Infill_Path_with_bxbybz(fillpts, FlipTravel, space, hatch_angle, x_avg, y_avg);
+    Eigen::MatrixXd tool_path = Infill_Path_with_bxbybz(fillpts, FlipTravel, space, hatch_angle, x_avg, y_avg, (int) skip_lines);
     
     // Define Output
     MatlabOut[0] = mxCreateDoubleMatrix(tool_path.rows(), tool_path.cols(), mxREAL);
@@ -47,12 +53,42 @@ void mexFunction (int _OutArgs, mxArray *MatlabOut[], int _InArgs, const mxArray
     M0 = tool_path.array();  
 }
 
-Eigen::MatrixXd Infill_Path_with_bxbybz(Eigen::MatrixXd fillpts, double FlipTravel, double space, double hatch_angle, double x_avg, double y_avg)
+Eigen::MatrixXd Infill_Path_with_bxbybz(Eigen::MatrixXd fillpts, double FlipTravel, double space, double hatch_angle, double x_avg, double y_avg, int skip_lines)
 {
     // function for creating path from projected points for tcp travel along x direction
     // INPUT: projected points on the surface (equally spaced along x and y axes)
     // OUTPUT: points arranged along 0 degree path with their Rx and Ry value
 
+    // aligning points
+    Eigen::MatrixXd storesort = align_pts(fillpts);  
+
+    Eigen::MatrixXd storesort0x1(storesort.rows(),12);
+    storesort0x1.block(0,0,storesort.rows(),3) = storesort.block(0,0,storesort.rows(),3);
+    Eigen::MatrixXd bxbybz = compute_TCP(storesort.block(0,0,storesort.rows(),3),-storesort.block(0,3,storesort.rows(),3));
+    storesort0x1.block(0,3,storesort.rows(),9) = bxbybz;
+
+    // skipping pts along line to smoothen motion
+    Eigen::MatrixXd storesort0x1tp = smoothened_traj_by_pts_skip(storesort0x1, space);
+
+    // skipping the toolpath lines
+    Eigen::MatrixXd storesort0x1tp_reduced_lines = skip_toolpath_lines(storesort0x1tp,skip_lines);
+
+    // flip the direction of travel
+    if (FlipTravel==1)
+    {
+        Eigen::MatrixXd storesort0x1tp_rev(storesort0x1tp_reduced_lines.rows(),storesort0x1tp_reduced_lines.cols());
+        storesort0x1tp_rev = storesort0x1tp_reduced_lines.colwise().reverse();
+        storesort0x1tp_reduced_lines = storesort0x1tp_rev;
+    }
+
+    //apply hatching angle
+    Eigen::MatrixXd storesort0x1tp_new = rotate_pts(storesort0x1tp_reduced_lines.block(0,0,storesort0x1tp_reduced_lines.rows(),2),hatch_angle,x_avg,y_avg);
+    storesort0x1tp_reduced_lines.block(0,0,storesort0x1tp_reduced_lines.rows(),2) = storesort0x1tp_new;
+    return storesort0x1tp_reduced_lines;
+}
+
+Eigen::MatrixXd align_pts(Eigen::MatrixXd fillpts)
+{
     int dir1 = 1;
     int dir2 = 0;
     Eigen::MatrixXd allpts = fillpts;
@@ -67,7 +103,7 @@ Eigen::MatrixXd Infill_Path_with_bxbybz(Eigen::MatrixXd fillpts, double FlipTrav
     long int storeset_idx = 0;
     for (long int i=0;i<allpts.rows()-1;++i)
     {
-        if (std::fabs(allpts(i,dir1)-allpts(i+1,dir1))<0.0001)
+        if (std::abs(allpts(i,dir1)-allpts(i+1,dir1))<0.00001)
         {
             storeset.row(storeset_idx) = allpts.row(i);
             ++storeset_idx;
@@ -109,17 +145,15 @@ Eigen::MatrixXd Infill_Path_with_bxbybz(Eigen::MatrixXd fillpts, double FlipTrav
         storeset_nz = storeset_nz_rev;
     }
     storesort.block(storesort_strt,0,storeset_nz.rows(),storeset_nz.cols()) = storeset_nz;  
+    return storesort;
+}
 
-    Eigen::MatrixXd storesort0x1(storesort.rows(),12);
-    storesort0x1.block(0,0,storesort.rows(),3) = storesort.block(0,0,storesort.rows(),3);
-    Eigen::MatrixXd bxbybz = compute_TCP(storesort.block(0,0,storesort.rows(),3),-storesort.block(0,3,storesort.rows(),3));
-    storesort0x1.block(0,3,storesort.rows(),9) = bxbybz;
-
+Eigen::MatrixXd smoothened_traj_by_pts_skip(Eigen::MatrixXd storesort0x1, double space)
+{
     // storing every n'th point to smoothen out the path 
     int count = 0;
     Eigen::MatrixXd store_spaced_pt = Eigen::MatrixXd::Constant(storesort0x1.rows(),storesort0x1.cols(),0); 
     store_spaced_pt.row(0) = storesort0x1.row(0);
-
     long int store_spaced_pt_idx = 0;
     int flagg = 0;
     for (long int i=1;i<storesort0x1.rows()-1;++i)
@@ -129,7 +163,7 @@ Eigen::MatrixXd Infill_Path_with_bxbybz(Eigen::MatrixXd fillpts, double FlipTrav
             flagg=0;
             continue;
         }
-        if (storesort0x1(i,1)==storesort0x1(i+1,1))
+        if (std::abs(storesort0x1(i,1)-storesort0x1(i+1,1))<0.00001)
         {
             ++count;
             if (double(count)/space == round(count/space))
@@ -148,23 +182,111 @@ Eigen::MatrixXd Infill_Path_with_bxbybz(Eigen::MatrixXd fillpts, double FlipTrav
             flagg = 1;  
         }
     }
-    
+
     // adding the last point
     store_spaced_pt.row(store_spaced_pt_idx) = storesort0x1.row(storesort0x1.rows()-1);
-
     Eigen::MatrixXd storesort0x1tp = store_spaced_pt.block(0,0,store_spaced_pt_idx+1,store_spaced_pt.cols());
-    // flip the direction of travel
-    if (FlipTravel==1)
-    {
-        Eigen::MatrixXd storesort0x1tp_rev(storesort0x1tp.rows(),storesort0x1tp.cols());
-        storesort0x1tp_rev = storesort0x1tp.colwise().reverse();
-        storesort0x1tp = storesort0x1tp_rev;
-    }
-
-    //apply hatching angle
-    Eigen::MatrixXd storesort0x1tp_new = rotate_pts(storesort0x1tp.block(0,0,storesort0x1tp.rows(),2),hatch_angle,x_avg,y_avg);
-    storesort0x1tp.block(0,0,storesort0x1tp.rows(),2) = storesort0x1tp_new;
     return storesort0x1tp;
+}
+
+Eigen::MatrixXd skip_toolpath_lines(Eigen::MatrixXd storesort0x1tp,int skip_lines)
+{
+    int dir1 = 1;
+    int dir2 = 0;
+    int flip = 0;
+    int skip_lines_counter = 0;
+    long int storesort_strt = 0;
+    long int storeset_idx = 0;
+    long int storesort_mid_pts_idx = 0;    
+    Eigen::MatrixXd storeset = Eigen::MatrixXd::Constant(storesort0x1tp.rows(),storesort0x1tp.cols(),0);
+    Eigen::MatrixXd storesort = Eigen::MatrixXd::Constant(storesort0x1tp.rows(),storesort0x1tp.cols(),0);
+    Eigen::MatrixXd storesort_mid_pts = Eigen::MatrixXd::Constant(storesort0x1tp.rows(),storesort0x1tp.cols(),0);
+
+    for (long i=0;i<storesort0x1tp.rows()-1;++i)
+    {
+        if (std::abs(storesort0x1tp(i,dir1)-storesort0x1tp(i+1,dir1))<0.00001)
+        {
+            // std::cout << "bug4..." << std::endl;
+            storeset.row(storeset_idx) = storesort0x1tp.row(i);
+            ++storeset_idx;
+        }
+        else
+        {
+            // std::cout << "bug47..." << std::endl;
+            
+            storeset.row(storeset_idx) = storesort0x1tp.row(i);
+            Eigen::MatrixXd storeset_nz(storeset_idx+1,storeset.cols());
+            storeset_nz = storeset.block(0,0,storeset_idx+1,storeset.cols());
+            std::vector<std::vector<double> > storeset_nz_vec;
+            storeset_nz_vec = mat_to_vec(storeset_nz);
+            storeset_nz_vec = SortRows(storeset_nz_vec,dir2);
+            storeset_nz = vec_to_mat(storeset_nz_vec);
+            if (skip_lines!=0)
+            {
+                if (storesort_strt!=0)
+                {
+                    if (skip_lines_counter<skip_lines)
+                    {
+                        skip_lines_counter++;
+                        if (double(flip)/2==round(double(flip)/2))
+                        {
+                            storesort_mid_pts.row(storesort_mid_pts_idx++) = storeset_nz.row(storeset_nz.rows()-1);
+                        }
+                        else
+                        {
+                            storesort_mid_pts.row(storesort_mid_pts_idx++) = storeset_nz.row(0);    
+                        }
+                        storeset_idx = 0;
+                        continue;                       
+                    }
+                    else
+                    {
+                        skip_lines_counter = 0;
+                    }
+                }
+            }
+            if (double(flip)/2==round(double(flip)/2))
+            {
+                Eigen::MatrixXd storeset_nz_rev(storeset_nz.rows(),storeset_nz.cols()); 
+                storeset_nz_rev = storeset_nz.colwise().reverse();
+                storeset_nz = storeset_nz_rev;
+            }
+
+            flip++;
+            
+            Eigen::MatrixXd storesort_mid_pts_filled = storesort_mid_pts.block(0,0,storesort_mid_pts_idx,storesort_mid_pts.cols());
+            storesort.block(storesort_strt,0,storesort_mid_pts_filled.rows(),storesort_mid_pts_filled.cols()) = storesort_mid_pts_filled;
+            storesort_strt = storesort_strt + storesort_mid_pts_idx;
+            storesort.block(storesort_strt,0,storeset_nz.rows(),storeset_nz.cols()) = storeset_nz;
+            storesort_strt = storesort_strt + storeset_idx+1;
+            storeset_idx = 0; 
+            storesort_mid_pts_idx = 0;           
+        }
+    }
+    if (skip_lines_counter>=skip_lines)
+    {
+        Eigen::MatrixXd storesort_mid_pts_filled = storesort_mid_pts.block(0,0,storesort_mid_pts_idx,storesort_mid_pts.cols());
+        storesort.block(storesort_strt,0,storesort_mid_pts_filled.rows(),storesort_mid_pts_filled.cols()) = storesort_mid_pts_filled;
+        storesort_strt = storesort_strt + storesort_mid_pts_idx;        
+        storeset.row(storeset_idx) = storesort0x1tp.row(storesort0x1tp.rows()-1);
+        Eigen::MatrixXd storeset_nz(storeset_idx+1,storeset.cols());
+        storeset_nz = storeset.block(0,0,storeset_idx+1,storeset.cols());
+        std::vector<std::vector<double> > storeset_nz_vec;
+        storeset_nz_vec = mat_to_vec(storeset_nz);
+        storeset_nz_vec = SortRows(storeset_nz_vec,dir2);
+        storeset_nz = vec_to_mat(storeset_nz_vec);
+        // this is to get the direction of last line travel
+        if (double(flip)/2==round(double(flip)/2))
+        {
+            Eigen::MatrixXd storeset_nz_rev(storeset_nz.rows(),storeset_nz.cols()); 
+            storeset_nz_rev = storeset_nz.colwise().reverse();
+            storeset_nz = storeset_nz_rev;
+        }
+        storesort.block(storesort_strt,0,storeset_nz.rows(),storeset_nz.cols()) = storeset_nz;  
+        storesort_strt = storesort_strt + storeset_nz.rows();
+    }
+    Eigen::MatrixXd skipped_lines_pts = storesort.block(0,0,storesort_strt,storesort.cols());
+    return skipped_lines_pts;
 }
 
 Eigen::MatrixXd compute_TCP(Eigen::MatrixXd data_points, Eigen::MatrixXd normals)
